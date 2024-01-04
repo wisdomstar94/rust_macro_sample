@@ -1,0 +1,11 @@
+[package]
+name = "rust_macro_sample"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+macro_derive = { path = "./macro_derive" }
+macro_trait = { path = "./macro_trait" }
+
+[workspace]
+members = ["macro_derive", "macro_trait"]
