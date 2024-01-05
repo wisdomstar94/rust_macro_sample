@@ -9,12 +9,15 @@ struct Test {}
 
 // "절차적 매크로 - 속성 매크로"는 함수의 내용을 특정 내용으로 변경시켜준다.
 // 예를 들어 기존 함수 내부 코드의 전, 후로 특정 코드를 추가하는 것도 가능하다.
-#[my_custom_attribute]
-fn my_function() {
-    println!("why..?");
-} 
+#[my_custom_attribute(GET, ",_,_,", 33)]
+// #[my_custom_attribute(name="gg", scroes=[1, 2, 3])]
+fn my_function(a: &u32) {
+    println!("why..? {}", a);
+}  
 
 fn main() {
     Test::hello_world();
-    my_function(); 
+    let a = 13;
+    my_function(&a); 
+    println!("..");
 }
