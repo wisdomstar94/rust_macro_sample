@@ -9,4 +9,4 @@ macro_trait = { path = "./macro_trait" }
 macro_attribute = { path = "./macro_attribute" }
 
 [workspace]
-members = ["macro_derive", "macro_trait", "macro_attribute"]
+members = ["macro_derive", "macro_trait", "macro_attribute"] 

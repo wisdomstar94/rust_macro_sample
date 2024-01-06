@@ -2,9 +2,11 @@ use macro_attribute::my_custom_attribute;
 use macro_derive::HelloWorldMacro;
 use macro_trait::HelloWorld;
 
-// "절차적 매크로 - 파생 매크로"는 derive 와 함께 구조체에서만 사용 가능! (ex. struct, enum)
+// "절차적 매크로 - 파생 매크로(커스텀 derive 매크로)"는 derive 와 함께 구조체에서만 사용 가능! (ex. struct, enum 등)
 // 현재 scope 에 존재하는 특정 trait 에 대한 기본 구현을 해준다.
 #[derive(HelloWorldMacro)]
+#[attr1(name = "hong", scores = [1, 2, 3])]
+#[attr2(GET, 404, "/")]
 struct Test {}
 
 // "절차적 매크로 - 속성 매크로"는 함수의 내용을 특정 내용으로 변경시켜준다.
