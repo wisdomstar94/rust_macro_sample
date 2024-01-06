@@ -23,11 +23,54 @@ enum LiteralType {
     String(String),
 }
 
+#[derive(Debug)]
+struct NamedArguments {
+    name: Option<String>,
+    scores: Option<Vec<u32>>,
+}
+
+impl NamedArguments {
+    pub fn new_and_parse(token: &TokenStream) -> Self {
+        let mut obj = NamedArguments {
+            name: None,
+            scores: None,
+        };
+        let token_collect: Vec<TokenTree> = token.clone().into_iter().collect();
+        let mut i = 0;
+        for item in &token_collect {
+            match item {
+                TokenTree::Ident(v) => { // writed parameter name
+                    match v.to_string().as_str() {
+                        "name" => obj.name = get_string_from_token_tree(token_collect.get(i + 2)),
+                        "scores" => obj.scores = get_vec_integer_from_token_tree(token_collect.get(i + 2)),
+                        _ => {}
+                    }
+                },
+                TokenTree::Group(_) => {
+                    
+                },
+                TokenTree::Punct(_) => {
+                    
+                },
+                TokenTree::Literal(_) => {
+                    
+                },
+            }
+            i = i + 1;
+        }
+        obj
+    }
+}
+
 #[proc_macro_attribute]
 pub fn my_custom_attribute(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Non-Named Arguments Parsing
-    let non_named_arguments_vec = parse_attr_non_named(attr);
+    let non_named_arguments_vec = parse_attr_non_named(&attr);
     dbg!(non_named_arguments_vec);
+
+    // Named Arguments Parsing
+    let named_arguments = NamedArguments::new_and_parse(&attr);
+    dbg!(named_arguments);
 
     let function = parse_macro_input!(item as ItemFn);
     let original_function_name = &function.sig.ident;
@@ -96,20 +139,16 @@ pub fn my_custom_attribute(attr: TokenStream, item: TokenStream) -> TokenStream 
     TokenStream::from(expanded)
 }
 
-// fn parse_attr_named(token: TokenStream) {
-
-// }
-
-fn parse_attr_non_named(token: TokenStream) -> Vec<MyArgData> {
+fn parse_attr_non_named(token: &TokenStream) -> Vec<MyArgData> {
     let mut sequential_args: Vec<MyArgData> = Vec::new();
 
-    for item in token.into_iter() {
+    for item in token.clone().into_iter() {
         match item {
             TokenTree::Ident(v) => {
                 sequential_args.push(MyArgData::RawStr(v.to_string()));
             },
             TokenTree::Group(v) => {
-                if let Some(data) = get_group_data(v) {
+                if let Some(data) = get_group_data(&v) {
                     sequential_args.push(data);
                 }
             },
@@ -117,7 +156,7 @@ fn parse_attr_non_named(token: TokenStream) -> Vec<MyArgData> {
                 // ex) ,
             },
             TokenTree::Literal(v) => { 
-                if let Some(data) = get_literal_data(v) {
+                if let Some(data) = get_literal_data(&v) {
                     sequential_args.push(data);
                 }
             },
@@ -138,7 +177,7 @@ fn get_literal_type(v: &str) -> Option<LiteralType> {
     result
 }
 
-fn get_literal_data(literal: Literal) -> Option<MyArgData> {
+fn get_literal_data(literal: &Literal) -> Option<MyArgData> {
     let mut result: Option<MyArgData> = None;
     if let Some(r) = get_literal_type(&literal.to_string()) {
         match r {
@@ -158,7 +197,7 @@ fn get_literal_data(literal: Literal) -> Option<MyArgData> {
     result
 }
 
-fn get_group_data(group: Group) -> Option<MyArgData> {
+fn get_group_data(group: &Group) -> Option<MyArgData> {
     let mut data: Option<MyArgData> = None;
 
     match group.delimiter() {
@@ -176,7 +215,7 @@ fn get_group_data(group: Group) -> Option<MyArgData> {
             for item in iter {
                 match item {
                     TokenTree::Group(v) => {
-                        data = get_group_data(v);
+                        data = get_group_data(&v);
                     },
                     TokenTree::Ident(_) => {
 
@@ -185,7 +224,7 @@ fn get_group_data(group: Group) -> Option<MyArgData> {
 
                     },
                     TokenTree::Literal(v) => {
-                        let data = get_literal_data(v);
+                        let data = get_literal_data(&v);
                         if let Some(r) = data {
                             match r {
                                 MyArgData::String(o) => temp_vec_string.push(o),
@@ -213,4 +252,32 @@ fn get_group_data(group: Group) -> Option<MyArgData> {
     }
 
     data
+}
+
+fn get_string_from_token_tree(tree: Option<&TokenTree>) -> Option<String> {
+    let mut result: Option<String> = None;
+    if let Some(v) = tree {
+        if let TokenTree::Literal(literal) = v {
+            if let Some(data) = get_literal_data(&literal) {
+                if let MyArgData::String(p) = data {
+                    result = Some(p);
+                }
+            }
+        }
+    }
+    result
+}
+
+fn get_vec_integer_from_token_tree(tree: Option<&TokenTree>) -> Option<Vec<u32>> {
+    let mut result: Option<Vec<u32>> = None;
+    if let Some(v) = tree {
+        if let TokenTree::Group(group) = v {
+            if let Some(data) = get_group_data(group) {
+                if let MyArgData::VecInteger(p) = data {
+                    result = Some(p);
+                }
+            }
+        }
+    }
+    result
 }
