@@ -11,6 +11,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "macro_declarative"
+version = "0.1.0"
+
+[[package]]
 name = "macro_derive"
 version = "0.0.1"
 dependencies = [
@@ -49,6 +53,7 @@ name = "rust_macro_sample"
 version = "0.0.1"
 dependencies = [
  "macro_attribute",
+ "macro_declarative",
  "macro_derive",
  "macro_trait",
 ]

@@ -1,0 +1,12 @@
+[package]
+name = "macro_declarative"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "macro_declarative"
+path = "src/lib.rs"
+proc-macro = true
+
+[dependencies]
+

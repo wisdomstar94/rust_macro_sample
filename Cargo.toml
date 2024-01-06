@@ -7,6 +7,7 @@ edition = "2021"
 macro_derive = { path = "./macro_derive" }
 macro_trait = { path = "./macro_trait" }
 macro_attribute = { path = "./macro_attribute" }
+macro_declarative = { path = "./macro_declarative" }
 
 [workspace]
-members = ["macro_derive", "macro_trait", "macro_attribute"] 
+members = ["macro_derive", "macro_trait", "macro_attribute", "macro_declarative"] 
