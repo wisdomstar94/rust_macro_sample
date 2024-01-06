@@ -2,96 +2,32 @@ extern crate proc_macro;
 
 use std::ops::Deref;
 
-use proc_macro::TokenStream;
+use proc_macro::{TokenStream, TokenTree, Literal, Group};
 use quote::quote;
-use syn::{parse_macro_input, ItemFn, Ident, LitStr, LitInt, Token, parse::{Parse, ParseStream}, FnArg, Pat, Type, PathSegment};
-
-// struct MyCustomNamedAttributes {
-//     list: Vec<syn::Ident>,
-//     read: Vec<syn::Ident>,
-// }
-
-#[derive(Debug)]
-struct MyCustomArgs {
-    arg1: Result<Ident, syn::Error>,
-    _comma1: Result<Token![,], syn::Error>,
-    arg2: Result<LitStr, syn::Error>,
-    _comma2: Result<Token![,], syn::Error>,
-    arg3: Result<LitInt, syn::Error>,
-}
+use syn::{parse_macro_input, ItemFn, FnArg, Pat, Type, PathSegment};
 
 #[derive(Debug)]
 enum MyArgData {
-    Str(String),
+    RawStr(String),
+    String(String),
     Int(u32),
+    Float(f64),
+    VecInteger(Vec<u32>),
+    VecFloat(Vec<f64>),
+    VecString(Vec<String>),
 }
 
-impl Parse for MyCustomArgs {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        Ok(MyCustomArgs {
-            arg1: input.parse(),
-            _comma1: input.parse(),
-            arg2: input.parse(),
-            _comma2: input.parse(),
-            arg3: input.parse(),
-        })
-    }
+enum LiteralType {
+    Integer(u32),
+    Float(f64),
+    String(String),
 }
-
-// #[derive(Debug)]
-// struct MyCustomNamesArgs {
-//     scores: Result<Vec<u32>, syn::Error>,
-//     name: Result<String, syn::Error>,
-// }
-
-// impl Parse for MyCustomNamesArgs {
-//     fn parse(input: ParseStream) -> syn::Result<Self> {
-//         let arg_name: Ident = input.parse()?;
-//         if arg_name != "name" {
-//             // Same error as before when encountering an unsupported attribute
-//             return Err(syn::Error::new_spanned(
-//                 arg_name,
-//                 "unsupported getter attribute, expected `name`",
-//             ));
-//         }
-
-//         // Parse (and discard the span of) the `=` token
-//         let _: Token![=] = input.parse()?;
-
-//         // Parse the argument value
-//         // let name = input.parse();
-
-//         Ok(MyCustomNamesArgs { 
-//             name: Ok(String::from("")),
-//             scores: Ok(vec![1]),
-//         })
-//     }
-// }
 
 #[proc_macro_attribute]
 pub fn my_custom_attribute(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Non-Named Arguments Parsing
-    let mut sequential_args: Vec<MyArgData> = Vec::new();
-    let clone_attr = attr.clone();
-    let macro_args = parse_macro_input!(clone_attr as MyCustomArgs);
-    if let Ok(r) = macro_args.arg1 {
-        sequential_args.push(MyArgData::Str(r.to_string()));
-    }
-    if let Ok(r) = macro_args.arg2 {
-        sequential_args.push(MyArgData::Str(r.value()));
-    }
-    if let Ok(r) = macro_args.arg3 {
-        if let Ok(v) = r.base10_parse::<u32>() {
-            sequential_args.push(MyArgData::Int(v));
-        }
-    }
-    dbg!(sequential_args);
-
-    // Named Arguments Parsing
-    // let named_macro_args = parse_macro_input!(attr as MyCustomNamesArgs);
-    // let a = Attribute::parse_args(attr.);
-    // let named_macro_args = parse_macro_input!(attr as MyCustomNamesArgs);
-    // dbg!(named_macro_args);
+    let non_named_arguments_vec = parse_attr_non_named(attr);
+    dbg!(non_named_arguments_vec);
 
     let function = parse_macro_input!(item as ItemFn);
     let original_function_name = &function.sig.ident;
@@ -158,4 +94,123 @@ pub fn my_custom_attribute(attr: TokenStream, item: TokenStream) -> TokenStream 
     };
 
     TokenStream::from(expanded)
+}
+
+// fn parse_attr_named(token: TokenStream) {
+
+// }
+
+fn parse_attr_non_named(token: TokenStream) -> Vec<MyArgData> {
+    let mut sequential_args: Vec<MyArgData> = Vec::new();
+
+    for item in token.into_iter() {
+        match item {
+            TokenTree::Ident(v) => {
+                sequential_args.push(MyArgData::RawStr(v.to_string()));
+            },
+            TokenTree::Group(v) => {
+                if let Some(data) = get_group_data(v) {
+                    sequential_args.push(data);
+                }
+            },
+            TokenTree::Punct(_) => {
+                // ex) ,
+            },
+            TokenTree::Literal(v) => { 
+                if let Some(data) = get_literal_data(v) {
+                    sequential_args.push(data);
+                }
+            },
+        }
+    }
+
+    sequential_args
+}
+
+fn get_literal_type(v: &str) -> Option<LiteralType> {
+    let result: Option<LiteralType> = if let Ok(value) = v.parse::<u32>() {
+        Some(LiteralType::Integer(value))
+    } else if let Ok(value) = v.parse::<f64>() {
+        Some(LiteralType::Float(value))
+    } else {
+        Some(LiteralType::String(v.to_string()))
+    };
+    result
+}
+
+fn get_literal_data(literal: Literal) -> Option<MyArgData> {
+    let mut result: Option<MyArgData> = None;
+    if let Some(r) = get_literal_type(&literal.to_string()) {
+        match r {
+            LiteralType::Integer(value) => {
+                result = Some(MyArgData::Int(value));
+            },
+            LiteralType::Float(value) => {
+                result = Some(MyArgData::Float(value));
+            },
+            LiteralType::String(value) => {
+                let str = value.to_string();
+                let value2 = &str[1..str.len() - 1];
+                result = Some(MyArgData::String(value2.to_string()));
+            },
+        }
+    }
+    result
+}
+
+fn get_group_data(group: Group) -> Option<MyArgData> {
+    let mut data: Option<MyArgData> = None;
+
+    match group.delimiter() {
+        proc_macro::Delimiter::Parenthesis => { // Tuple
+            
+        },
+        proc_macro::Delimiter::Brace => {
+            
+        },
+        proc_macro::Delimiter::Bracket => { // Vec
+            let iter = group.stream().into_iter();
+            let mut temp_vec_int: Vec<u32> = Vec::new();
+            let mut temp_vec_float: Vec<f64> = Vec::new();
+            let mut temp_vec_string: Vec<String> = Vec::new();
+            for item in iter {
+                match item {
+                    TokenTree::Group(v) => {
+                        data = get_group_data(v);
+                    },
+                    TokenTree::Ident(_) => {
+
+                    },
+                    TokenTree::Punct(_) => {
+
+                    },
+                    TokenTree::Literal(v) => {
+                        let data = get_literal_data(v);
+                        if let Some(r) = data {
+                            match r {
+                                MyArgData::String(o) => temp_vec_string.push(o),
+                                MyArgData::Int(o) => temp_vec_int.push(o),
+                                MyArgData::Float(o) => temp_vec_float.push(o),
+                                _ => {},
+                            }
+                        }
+                    },
+                }
+            }
+            if temp_vec_int.len() > 0 {
+                data = Some(MyArgData::VecInteger(temp_vec_int));
+            }
+            if temp_vec_float.len() > 0 {
+                data = Some(MyArgData::VecFloat(temp_vec_float));
+            }
+            if temp_vec_string.len() > 0 {
+                data = Some(MyArgData::VecString(temp_vec_string));
+            }
+        },
+        proc_macro::Delimiter::None => {
+            
+        },
+    }
+
+    data
 }
