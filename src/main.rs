@@ -1,4 +1,5 @@
 use macro_attribute::my_custom_attribute;
+use macro_declarative::my_string;
 use macro_derive::HelloWorldMacro;
 use macro_trait::HelloWorld;
 
@@ -17,9 +18,22 @@ fn my_function(a: &u32) {
     println!("my_function call! {}", a); 
 }
 
+// struct TT {
+
+// }
+
+// impl HelloWorld for TT {
+//     fn hello_world() {
+//         println!("TT hello_world~~~");
+//     }
+// }
+
 fn main() {
     Test::hello_world();
     let a = 13;
     my_function(&a); 
-    println!("..");
+    println!("{}", my_string!("nice~"));
+
+    // let tt = TT {};
+    // my_call!(tt as TT);
 }

@@ -13,6 +13,9 @@ dependencies = [
 [[package]]
 name = "macro_declarative"
 version = "0.1.0"
+dependencies = [
+ "macro_trait",
+]
 
 [[package]]
 name = "macro_derive"
