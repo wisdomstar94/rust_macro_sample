@@ -74,6 +74,7 @@ pub fn my_custom_attribute(attr: TokenStream, item: TokenStream) -> TokenStream 
 
     let function = parse_macro_input!(item as ItemFn);
     let original_function_name = &function.sig.ident;
+    let asyncness = &function.sig.asyncness;
     let inputs = &function.sig.inputs;
     let output = &function.sig.output;
     let block = &function.block;
@@ -130,7 +131,7 @@ pub fn my_custom_attribute(attr: TokenStream, item: TokenStream) -> TokenStream 
     }
 
     let expanded = quote! {
-        #vis #constness #unsafety #abi fn #original_function_name #generics (#inputs) #output {
+        #vis #asyncness #constness #unsafety #abi fn #original_function_name #generics (#inputs) #output {
             println!("Calling function: {}", stringify!(#original_function_name));
             #block
         }
